@@ -1,4 +1,4 @@
-
+import 'github_asset.dart';
 import 'github_release.dart';
 
 class UpdateInfo {
@@ -7,6 +7,7 @@ class UpdateInfo {
     required this.latestVersion,
     required this.hasUpdate,
     required this.release,
+    required this.asset,
   });
 
   final String currentVersion;
@@ -16,4 +17,5 @@ class UpdateInfo {
   final bool hasUpdate;
 
   final GitHubRelease release;
+  final GitHubAsset asset;
 }

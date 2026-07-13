@@ -63,13 +63,14 @@ class ApkUpdater {
       if (assetResult is Error<GitHubAsset>) {
         return Error(assetResult.failure);
       }
-
+      final selectedAsset = (assetResult as Success<GitHubAsset>).data;
       return Success(
         UpdateInfo(
           currentVersion: currentVersion,
           latestVersion: release.version,
           hasUpdate: hasUpdate,
           release: release,
+          asset: selectedAsset,
         ),
       );
     } catch (exception, stackTrace) {
@@ -85,13 +86,12 @@ class ApkUpdater {
   }
 
   Future<Result<DownloadInfo>> download({
-    required GitHubRelease release,
-    required GitHubAsset asset,
+    required UpdateInfo updateInfo,
     DownloadProgressCallback? onProgress,
   }) {
     return _downloadService.download(
-      release: release,
-      asset: asset,
+      release: updateInfo.release,
+      asset: updateInfo.asset,
       onProgress: onProgress,
     );
   }

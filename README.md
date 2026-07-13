@@ -149,6 +149,114 @@ await UpdateInstaller().install(
 ```
 
 ---
+## Instalation
+
+### 1. Create an updater instance
+
+```dart
+final updater = ApkUpdater(
+  config: const ApkUpdaterConfig(
+    owner: 'your-github-owner',
+    repository: 'your-repository',
+    apkPattern: 'app-release',
+    githubToken: null, // Optional (private repository only)
+  ),
+);
+```
+
+---
+
+### 2. Check for updates
+
+```dart
+final result = await updater.check();
+
+if (result is Error<UpdateInfo>) {
+  debugPrint(result.failure.message);
+  return;
+}
+
+final update = (result as Success<UpdateInfo>).data;
+
+if (!update.hasUpdate) {
+  debugPrint('Application is already up to date.');
+  return;
+}
+```
+
+---
+
+### 3. Download the APK
+
+```dart
+final downloadResult = await updater.download(
+  updateInfo: update,
+  onProgress: (progress) {
+    debugPrint(
+      '${(progress.progress * 100).toStringAsFixed(0)}%',
+    );
+  },
+);
+```
+
+---
+
+### 4. Install the downloaded APK
+
+```dart
+if (downloadResult is Success<DownloadInfo>) {
+  await updater.install(
+    apkPath: downloadResult.data.localFilePath,
+  );
+}
+```
+
+---
+
+### Complete Example
+
+```dart
+final updater = ApkUpdater(
+  config: const ApkUpdaterConfig(
+    owner: 'your-github-owner',
+    repository: 'your-repository',
+    apkPattern: 'app-release',
+  ),
+);
+
+final checkResult = await updater.check();
+
+if (checkResult is Error<UpdateInfo>) {
+  debugPrint(checkResult.failure.message);
+  return;
+}
+
+final update = (checkResult as Success<UpdateInfo>).data;
+
+if (!update.hasUpdate) {
+  debugPrint('Already using the latest version.');
+  return;
+}
+
+final downloadResult = await updater.download(
+  updateInfo: update,
+  onProgress: (progress) {
+    debugPrint(
+      'Downloading ${(progress.progress * 100).toStringAsFixed(0)}%',
+    );
+  },
+);
+
+if (downloadResult is Error<DownloadInfo>) {
+  debugPrint(downloadResult.failure.message);
+  return;
+}
+
+await updater.install(
+  apkPath: downloadResult.data.localFilePath,
+);
+```
+---
 
 # Download Flow
 
