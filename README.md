@@ -179,6 +179,43 @@ if (downloadResult is Success<DownloadInfo>) {
 ```
 
 ---
+### Handling Result<T>
+
+All public APIs return a `Result<T>` object.
+
+```dart
+final result = await updater.check();
+
+switch (result) {
+  case Success<UpdateInfo>():
+    final update = result.data;
+    break;
+
+  case Error<UpdateInfo>():
+    debugPrint(result.failure.message);
+    break;
+}
+```
+---
+### Download Progress
+
+A progress callback can be supplied while downloading.
+
+```dart
+await updater.download(
+  updateInfo: update,
+  onProgress: (progress) {
+    print(
+      '${progress.receivedBytes}/${progress.totalBytes}',
+    );
+
+    print(
+      '${(progress.progress * 100).toStringAsFixed(1)}%',
+    );
+  },
+);
+```
+---
 
 ### Complete Example
 

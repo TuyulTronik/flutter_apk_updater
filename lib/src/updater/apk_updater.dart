@@ -4,6 +4,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import '../api/github_api.dart';
 import '../config/apk_updater_config.dart';
 import '../downloader/apk_downloader.dart';
+import '../installer/update_installer.dart';
 import '../models/download_info.dart';
 import '../models/failure.dart';
 import '../models/github_asset.dart';
@@ -18,6 +19,7 @@ class ApkUpdater {
     : _githubApi = GitHubApi(dio: Dio()),
       _versionComparator = const VersionComparator(),
       _assetSelector = const AssetSelector(),
+      _installer = const UpdateInstaller(),
       _downloadService = ApkDownloadService();
 
   final ApkUpdaterConfig _config;
@@ -25,6 +27,8 @@ class ApkUpdater {
   final GitHubApi _githubApi;
 
   final VersionComparator _versionComparator;
+
+  final UpdateInstaller _installer;
 
   final AssetSelector _assetSelector;
 
@@ -94,5 +98,9 @@ class ApkUpdater {
       asset: updateInfo.asset,
       onProgress: onProgress,
     );
+  }
+
+  Future<Result<void>> install({required String apkPath}) {
+    return _installer.install(apkPath: apkPath);
   }
 }
