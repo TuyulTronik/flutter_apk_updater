@@ -341,5 +341,5 @@ MIT License.
 
 ---
 # Additional information
-- **Repository: [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
+- **Repository : [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
 - **Inspired By : [github_release_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
