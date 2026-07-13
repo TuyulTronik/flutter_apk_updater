@@ -117,38 +117,6 @@ final updater = ApkUpdater(
 ---
 
 # Usage
-
-## Check Update
-
-```dart
-final result = await updater.check();
-```
-
----
-
-## Download APK
-
-```dart
-await updater.download(
-  release: release,
-  asset: asset,
-  onProgress: (progress) {
-
-  },
-);
-```
-
----
-
-## Install APK
-
-```dart
-await UpdateInstaller().install(
-  apkPath: download.localFilePath,
-);
-```
-
----
 ## Instalation
 
 ### 1. Create an updater instance
