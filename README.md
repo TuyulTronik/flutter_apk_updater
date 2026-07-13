@@ -117,7 +117,6 @@ final updater = ApkUpdater(
 ---
 
 # Usage
-## Instalation
 
 ### 1. Create an updater instance
 
