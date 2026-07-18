@@ -29,12 +29,28 @@ flutter_apk_updater/
 │   │
 │   └── src/
 │       ├── api/
+│       │    └── github_api.dart
 │       ├── config/
+│       │    └── apk_updater_config.dart
 │       ├── downloader/
+│       │    └── apk_downloader.dart
+│       ├── installer/
+│       │    └── update_installer.dart
 │       ├── models/
+│       │    ├── download_info.dart
+│       │    ├── download_session.dart
+│       │    ├── failure.dart
+│       │    ├── github_asset.dart
+│       │    ├── github_release.dart
+│       │    ├── result.dart
+│       │    └── update_info.dart
 │       ├── session/
+│       │    └── download_session_storage.dart
 │       ├── updater/
+│       │    ├── apk_updater.dart
+│       │    └── asset_selector.dart
 │       └── version/
+│            └── version_comparator.dart
 │
 ├── example/
 ├── docs/
