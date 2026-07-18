@@ -15,8 +15,7 @@ Lightweight Flutter package for checking, downloading, and installing Android AP
 ![Flutter](https://img.shields.io/badge/Flutter-3.x-blue)
 ![Dart](https://img.shields.io/badge/Dart-3.x-blue)
 ![Android](https://img.shields.io/badge/Android-Only-green)
-![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-black)
-![License](https://img.shields.io/badge/License-MIT-brightgreen)
+![GitHub Releases](https://img.shields.io/badge/GitHub-Releases-brightgreen)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 </p>
 
@@ -432,10 +431,10 @@ Solusi:
 ---
 # 📄 Lisensi
 ---
-Copyright © 2024 TuyulTronik
+Copyright © 2026 TuyulTronik
 
 Dilisensikan di bawah MIT License.
 ---
 # Additional information
-- **Repository : [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
-- **Inspired By : [github_release_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
+- Repository : [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
+- Inspired By : [github_release_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
