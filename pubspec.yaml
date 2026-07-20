@@ -1,9 +1,8 @@
 name: flutter_apk_updater
-description: >
-  A lightweight Flutter package for checking, downloading,
-  and installing Android APK updates from GitHub Releases.
+description: OTA update package for Android using GitHub Releases as distribution source.
 version: 1.0.0
-homepage:
+repository: https://github.com/TuyulTronik/flutter_apk_updater
+issue_tracker: https://github.com/TuyulTronik/flutter_apk_updater/issues
 
 environment:
   sdk: ^3.12.2
@@ -18,7 +17,7 @@ dependencies:
   shared_preferences: ^2.5.5
   path_provider: ^2.1.6
   pub_semver: ^2.2.0
-
+  crypto: ^3.0.7
 dev_dependencies:
   flutter_test:
     sdk: flutter

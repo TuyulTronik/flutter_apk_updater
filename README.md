@@ -49,10 +49,16 @@ Seluruh proses dibangun menggunakan Flutter dan native Android (Kotlin) melalui 
 - ✅ **Version Comparison** (SemVer)
 - ✅ **Asset Filtering** berdasarkan pattern
 - ✅ **Error Handling** yang komprehensif
+- ✅ **APK Integrity** (opsional, verifikasi SHA256) 🔒
+- ✅ **Retry Mechanism** (3x untuk network errors) 🔄
+- ✅ **Storage Check** sebelum download 💾
+- ✅ **Permission Handling** runtime untuk Android 8+ 📱
+- ✅ **Auto Delete** configurable (default: false) 🗑️
 
 ---
 
 # Installation
+
 ## Public
 ```yaml
 dependencies:
@@ -99,6 +105,34 @@ Tambahkan provider ke AndroidManifest.xml:
 1. Buat Release di repository GitHub Anda
 2. Upload file APK sebagai asset
 3. Pastikan tag version mengikuti format SemVer (contoh: 1.0.0, v2.1.3)
+```
+### Advanced Configuration
+
+```dart
+final updater = ApkUpdater(
+  config: ApkUpdaterConfig(
+    owner: 'TuyulTronik',
+    repository: 'my_app',
+    apkPattern: 'app-release',
+    
+    // Optional: Untuk private repository
+    githubToken: 'your_token_here',
+    // Atau lebih aman dengan tokenProvider
+    tokenProvider: () async {
+      // Ambil token dari secure storage
+      return await secureStorage.read(key: 'github_token');
+    },
+    
+    // Optional: Verifikasi checksum (SHA256)
+    verifyChecksum: true,
+    
+    // Optional: Auto delete setelah install
+    autoDeleteAfterInstall: false,
+  ),
+  
+  // Optional: Timeout untuk network requests
+  timeout: Duration(seconds: 60),
+);
 ```
 ---
 # 🚀 Penggunaan Dasar
@@ -276,113 +310,79 @@ class _UpdateCheckerState extends State<UpdateChecker> {
       owner: 'TuyulTronik',
       repository: 'my_app',
       apkPattern: 'app-release',
+      verifyChecksum: true, // Aktifkan verifikasi
     ),
   );
 
-  bool _isLoading = false;
-  String _status = '';
-
-  Future<void> _checkUpdate() async {
-    setState(() {
-      _isLoading = true;
-      _status = 'Mengecek update...';
-    });
-
-    try {
-      final result = await updater.check();
-
-      if (result.isSuccess) {
-        final info = (result as Success<UpdateInfo>).data;
-
-        if (info.hasUpdate) {
-          setState(() {
-            _status = 'Update tersedia: ${info.latestVersion}';
-          });
-          _showUpdateDialog(info);
-        } else {
-          setState(() {
-            _status = 'Aplikasi sudah terbaru (${info.currentVersion})';
-          });
+  Future<void> _checkAndUpdate() async {
+    // 1. Cek update
+    final checkResult = await updater.check();
+    
+    if (checkResult.isSuccess) {
+      final info = (checkResult as Success<UpdateInfo>).data;
+      
+      if (info.hasUpdate) {
+        // 2. Download
+        final downloadResult = await updater.download(
+          updateInfo: info,
+          onProgress: (p) => print('Download: ${p.progress * 100}%'),
+        );
+        
+        if (downloadResult.isSuccess) {
+          final downloadInfo = (downloadResult as Success<DownloadInfo>).data;
+          
+          // 3. Cek permission
+          final hasPermission = await updater.canRequestPackageInstalls();
+          
+          if (!hasPermission) {
+            // Buka settings
+            await updater.openInstallSettings();
+            return;
+          }
+          
+          // 4. Install
+          final installResult = await updater.install(
+            apkPath: downloadInfo.localFilePath,
+          );
+          
+          if (installResult.isError) {
+            final failure = (installResult as Error<void>).failure;
+            print('Install gagal: ${failure.message}');
+          }
         }
-      } else {
-        final failure = (result as Error<UpdateInfo>).failure;
-        setState(() {
-          _status = 'Error: ${failure.message}';
-        });
       }
-    } catch (e) {
-      setState(() {
-        _status = 'Error: $e';
-      });
-    } finally {
-      setState(() {
-        _isLoading = false;
-      });
     }
   }
-
-  void _showUpdateDialog(UpdateInfo info) {
+}
+```
+## Menangani Permission Denied
+```dart
+try {
+  await updater.install(apkPath: path);
+} on Failure catch (failure) {
+  if (failure.code == 'permission_denied') {
+    // Tampilkan dialog dan arahkan ke settings
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Update Tersedia'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Versi baru: ${info.latestVersion}'),
-            SizedBox(height: 8),
-            Text('Versi saat ini: ${info.currentVersion}'),
-            if (info.release.releaseNotes.isNotEmpty) ...[
-              SizedBox(height: 8),
-              Text('Release Notes:'),
-              Text(
-                info.release.releaseNotes,
-                style: TextStyle(fontSize: 12),
-              ),
-            ],
-          ],
+        title: Text('Izin Instalasi Diperlukan'),
+        content: Text(
+          'Mohon izinkan instalasi dari sumber tidak dikenal '
+          'untuk melanjutkan update aplikasi.'
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Nanti'),
+            child: Text('Batal'),
           ),
           ElevatedButton(
             onPressed: () async {
+              await updater.openInstallSettings();
               Navigator.pop(context);
-              await _downloadAndInstall(info);
             },
-            child: Text('Update Sekarang'),
+            child: Text('Buka Settings'),
           ),
         ],
-      ),
-    );
-  }
-
-  Future<void> _downloadAndInstall(UpdateInfo info) async {
-    // Implementasi download & install
-    // ...
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: Text('Update Checker')),
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(_status),
-            SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: _isLoading ? null : _checkUpdate,
-              child: _isLoading
-                  ? CircularProgressIndicator()
-                  : Text('Cek Update'),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -434,6 +434,26 @@ Solusi:
 Copyright © 2026 TuyulTronik
 
 Dilisensikan di bawah MIT License.
+
+---
+# Checksum Verification
+## Untuk mengaktifkan verifikasi integritas APK:
+
+1. Upload APK ke GitHub Release
+2. Generate SHA256:
+```bash
+sha256sum app-release.apk > app-release.apk.sha256
+```
+3. Upload file checksum ke GitHub Release
+4. Aktifkan di config:
+```dart
+verifyChecksum: true
+```
+Package akan otomatis:
+ - Mendownload file app-release.apk.sha256
+ - Menghitung SHA256 dari APK yang didownload
+ - Membandingkan keduanya
+ - Gagal jika tidak match
 ---
 # Additional information
 - Repository : [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 

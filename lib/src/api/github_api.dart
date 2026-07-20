@@ -6,9 +6,7 @@ import '../models/github_release.dart';
 import '../models/result.dart';
 
 class GitHubApi {
-  const GitHubApi({
-    required this._dio,
-  });
+  const GitHubApi({required this._dio});
 
   static const String _acceptHeader = 'application/vnd.github+json';
 
@@ -58,6 +56,49 @@ class GitHubApi {
     }
   }
 
+  /// Download file checksum dari URL.
+  Future<Result<String>> downloadChecksum(String url) async {
+    try {
+      final response = await _dio.get<String>(
+        url,
+        options: Options(
+          responseType: ResponseType.plain,
+          validateStatus: (status) {
+            return status != null && status >= 200 && status < 300;
+          },
+        ),
+      );
+
+      final data = response.data;
+
+      if (data == null || data.isEmpty) {
+        return const Error(
+          Failure(code: 'checksum.empty', message: 'File checksum kosong.'),
+        );
+      }
+
+      return Success(data);
+    } on DioException catch (exception, stackTrace) {
+      return Error(
+        Failure(
+          code: 'checksum.download_failed',
+          message: 'Gagal mendownload checksum: ${exception.message}',
+          exception: exception,
+          stackTrace: stackTrace,
+        ),
+      );
+    } catch (exception, stackTrace) {
+      return Error(
+        Failure(
+          code: 'checksum.unknown',
+          message: 'Error tidak dikenal saat download checksum.',
+          exception: exception,
+          stackTrace: stackTrace,
+        ),
+      );
+    }
+  }
+
   String _buildUrl(ApkUpdaterConfig config) {
     return 'https://api.github.com/repos/'
         '${config.owner}/'
@@ -66,9 +107,7 @@ class GitHubApi {
   }
 
   Options _buildOptions(ApkUpdaterConfig config) {
-    final headers = <String, String>{
-      'Accept': _acceptHeader,
-    };
+    final headers = <String, String>{'Accept': _acceptHeader};
 
     final token = config.githubToken?.trim();
 

@@ -2,6 +2,7 @@ package com.example.flutter_apk_updater
 
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import io.flutter.plugin.common.MethodChannel
 
 class ApkInstaller(
@@ -32,7 +33,10 @@ class ApkInstaller(
                 addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
 
             }
-
+            // Untuk Android 7+ (API 24+), tambahkan flag tambahan
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
+            }
             val packageManager = context.packageManager
 
             if (intent.resolveActivity(packageManager) == null) {
@@ -55,15 +59,24 @@ class ApkInstaller(
 
             result.error(
                 "invalid_apk",
-                exception.message,
+                 "File APK tidak valid: ${exception.message}",
                 null,
             )
 
-        } catch (exception: Exception) {
+        }
+         catch (exception: SecurityException) {
+            result.error(
+                "security_error",
+                "Error keamanan: ${exception.message}. " +
+                "Pastikan permission sudah diberikan.",
+                null
+            )
+        }
+         catch (exception: Exception) {
 
             result.error(
                 "install_failed",
-                exception.message,
+                 "Gagal install APK: ${exception.message}",
                 null,
             )
 

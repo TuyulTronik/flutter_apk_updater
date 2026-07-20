@@ -29,4 +29,20 @@ class GitHubRelease {
   final DateTime publishedAt;
 
   final List<GitHubAsset> assets;
+
+  /// Mencari asset checksum untuk APK tertentu.
+  ///
+  /// [apkName] Nama file APK (contoh: 'app-release.apk')
+  ///
+  /// Returns:
+  /// - `GitHubAsset` jika ditemukan
+  /// - `null` jika tidak ditemukan
+  GitHubAsset? findChecksumAsset(String apkName) {
+    final checksumFileName = '$apkName.sha256';
+    try {
+      return assets.firstWhere((asset) => asset.name == checksumFileName);
+    } catch (_) {
+      return null;
+    }
+  }
 }
