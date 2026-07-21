@@ -134,7 +134,7 @@ class GitHubApi {
             return 'github.unauthorized';
 
           case 404:
-            return 'github.not_found.';
+            return 'github.not_found';
 
           default:
             return 'github.request_failed';
