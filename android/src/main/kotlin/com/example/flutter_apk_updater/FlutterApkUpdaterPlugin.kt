@@ -123,26 +123,23 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         }
     }
-    private fun _closeApp() {
-        try {
-            // 1. Selesai semua aktivitas
-            val activity = context as? Activity
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                activity?.finishAndRemoveTask()
-            } else {
-                activity?.finish()
-            }
-
-            // 2. Force exit (fallback)
-            Handler(Looper.getMainLooper()).postDelayed({
-                System.exit(0)
-            }, 100)
-
-        } catch (e: Exception) {
-            // 3. Ultimate fallback
-            System.exit(0)
+   private fun _closeApp() {
+    try {
+        val activity = context as? Activity
+        
+        // ✅ Cukup finish semua aktivitas
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            activity?.finishAndRemoveTask()
+        } else {
+            activity?.finish()
         }
+        
+        // ❌ Jangan System.exit!
+        // Biarkan sistem yang mengelola lifecycle
+    } catch (e: Exception) {
+        // Ignore
     }
+}
     override fun onDetachedFromEngine(
         binding: FlutterPlugin.FlutterPluginBinding
     ) {
