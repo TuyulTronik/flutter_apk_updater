@@ -1,4 +1,20 @@
 # Changelog
+
+## [1.0.2] - 2026-07-22
+
+### ✨ Fitur Baru
+- **Close App After Install**: Otomatis menutup aplikasi setelah instalasi APK selesai
+  - Mencegah duplicate instance aplikasi di background
+  - Dapat dikonfigurasi via `closeAppAfterInstall` (default: `true`)
+  - Implementasi native menggunakan `finishAndRemoveTask()` + `System.exit(0)`
+
+### 🔧 Perbaikan
+- Tidak ada lagi 2 instance aplikasi yang running setelah native update
+- Pengalaman instalasi APK lebih bersih
+
+### 📚 Dokumentasi
+- Update README dengan contoh penggunaan `closeAppAfterInstall`
+
 ## [1.0.1] - 2026-07-20
 
 ### ✨ Fitur Baru

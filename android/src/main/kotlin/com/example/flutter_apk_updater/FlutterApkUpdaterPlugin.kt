@@ -4,6 +4,9 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
+import android.app.Activity
 import android.os.Environment
 import android.os.StatFs
 import android.provider.Settings
@@ -111,13 +114,35 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                     result.error("storage_error", e.message, null)
                 }
             }
-
+             "closeApp" -> {
+                    _closeApp()
+                    result.success(null)
+             }
             else -> {
                 result.notImplemented()
             }
         }
     }
+    private fun _closeApp() {
+        try {
+            // 1. Selesai semua aktivitas
+            val activity = context as? Activity
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                activity?.finishAndRemoveTask()
+            } else {
+                activity?.finish()
+            }
 
+            // 2. Force exit (fallback)
+            Handler(Looper.getMainLooper()).postDelayed({
+                System.exit(0)
+            }, 100)
+
+        } catch (e: Exception) {
+            // 3. Ultimate fallback
+            System.exit(0)
+        }
+    }
     override fun onDetachedFromEngine(
         binding: FlutterPlugin.FlutterPluginBinding
     ) {

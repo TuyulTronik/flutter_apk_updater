@@ -1,6 +1,6 @@
 name: flutter_apk_updater
 description: OTA update package for Android using GitHub Releases as distribution source.
-version: 1.0.0
+version: 1.0.2
 repository: https://github.com/TuyulTronik/flutter_apk_updater
 issue_tracker: https://github.com/TuyulTronik/flutter_apk_updater/issues
 

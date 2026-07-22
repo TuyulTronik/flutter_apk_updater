@@ -131,12 +131,28 @@ final updater = ApkUpdater(
     
     // Optional: Auto delete setelah install
     autoDeleteAfterInstall: false,
+
+    // Close app setelah install (default: true)
+    closeAppAfterInstall: true,
   ),
   
   // Optional: Timeout untuk network requests
   timeout: Duration(seconds: 60),
 );
 ```
+### Close App After Install
+
+Setelah instalasi APK selesai, aplikasi akan otomatis ditutup untuk mencegah **duplicate instance** di background.
+
+```dart
+final updater = ApkUpdater(
+  config: ApkUpdaterConfig(
+    owner: 'TuyulTronik',
+    repository: 'tulkit',
+    apkPattern: 'release',
+    closeAppAfterInstall: true, // ✅ Default: true (otomatis close)
+  ),
+);
 ---
 
 # 🚀 Penggunaan Dasar
@@ -236,6 +252,10 @@ class ApkUpdaterConfig {
     required this.repository,     // Nama repository
     required this.apkPattern,     // Pattern untuk filter asset APK
     this.githubToken,             // Token untuk private repository
+    this.verifyChecksum = false,
+    this.autoDeleteAfterInstall = false,
+    this.closeAppAfterInstall = true,          
+    
   });
 }
 ```
@@ -245,6 +265,10 @@ class ApkUpdaterConfig {
 | repository | String| Nama repository GitHub |
 | apkPattern | String| Pattern untuk memilih asset APK (contoh: 'app-release') |
 | githubToken | String?| Token GitHub untuk akses private repository |
+| verifyChecksum | bool| Verifikasi checksum SHA256 (APK Integrity) |
+| autoDeleteAfterInstall | bool| delete Apk update setelah instalasi selesai (saving storage) |
+| closeAppAfterInstall | bool| Tutup app setelah install APK (mencegah duplicate instance) |
+
 
 ### UpdateInfo
 Informasi hasil pengecekan update.

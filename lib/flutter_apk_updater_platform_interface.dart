@@ -5,8 +5,7 @@ import 'flutter_apk_updater.dart';
 /// Interface untuk platform-specific implementations.
 abstract class FlutterApkUpdaterPlatform {
   /// Instance singleton dari platform interface.
-  static FlutterApkUpdaterPlatform _instance =
-      MethodChannelFlutterApkUpdater();
+  static FlutterApkUpdaterPlatform _instance = MethodChannelFlutterApkUpdater();
 
   /// Mendapatkan instance platform interface.
   static FlutterApkUpdaterPlatform get instance => _instance;
@@ -24,9 +23,7 @@ abstract class FlutterApkUpdaterPlatform {
   /// Returns:
   /// - `Success<void>` jika installasi berhasil dimulai
   /// - `Error<Failure>` jika terjadi error
-  Future<Result<void>> install({
-    required String apkPath,
-  });
+  Future<Result<void>> install({required String apkPath});
 
   /// Cek apakah aplikasi memiliki izin untuk install APK.
   ///
@@ -41,4 +38,7 @@ abstract class FlutterApkUpdaterPlatform {
   /// - `true` jika berhasil membuka settings
   /// - `false` jika gagal
   Future<bool> openInstallSettings();
+
+  /// BARU: Close app
+  Future<void> closeApp();
 }

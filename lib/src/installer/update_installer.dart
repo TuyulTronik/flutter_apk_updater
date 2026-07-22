@@ -17,6 +17,7 @@ class UpdateInstaller {
   Future<Result<void>> install({
     required String apkPath,
     bool autoDelete = false,
+    bool closeAppAfterInstall = true,
   }) async {
     // 1. Cek apakah file ada
     final file = File(apkPath);
@@ -57,7 +58,10 @@ class UpdateInstaller {
         // Abaikan error saat delete, tidak mempengaruhi install
       }
     }
-
+    // 5. CLOSE APP jika sukses dan flag diaktifkan
+    if (result.isSuccess && closeAppAfterInstall) {
+      await FlutterApkUpdaterPlatform.instance.closeApp();
+    }
     return result;
   }
 

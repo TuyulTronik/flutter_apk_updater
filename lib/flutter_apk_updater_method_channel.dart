@@ -1,8 +1,6 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_apk_updater/flutter_apk_updater.dart';
 
-
-
 /// Platform implementation menggunakan MethodChannel.
 class MethodChannelFlutterApkUpdater extends FlutterApkUpdaterPlatform {
   MethodChannelFlutterApkUpdater() {
@@ -71,6 +69,15 @@ class MethodChannelFlutterApkUpdater extends FlutterApkUpdaterPlatform {
       return false;
     } catch (_) {
       return false;
+    }
+  }
+
+  @override
+  Future<void> closeApp() async {
+    try {
+      await _channel.invokeMethod('closeApp');
+    } catch (e) {
+      // Ignore error, app tetap bisa close
     }
   }
 }

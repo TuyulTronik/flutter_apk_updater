@@ -20,6 +20,7 @@ class ApkUpdaterConfig {
     this.tokenProvider,
     this.verifyChecksum = false,
     this.autoDeleteAfterInstall = false,
+    this.closeAppAfterInstall = true,
   });
 
   /// GitHub owner (username atau organisasi)
@@ -66,6 +67,10 @@ class ApkUpdaterConfig {
   /// Default: false (file tetap ada)
   final bool autoDeleteAfterInstall;
 
+  // Apakah app otomatis ditutup setelah install APK.
+  /// Default: true (untuk mencegah duplicate instance)
+  final bool closeAppAfterInstall;
+
   /// Mendapatkan token dengan prioritas:
   /// 1. tokenProvider (jika ada)
   /// 2. githubToken (jika ada, deprecated)
@@ -94,7 +99,8 @@ class ApkUpdaterConfig {
       githubToken: githubToken ?? this.githubToken,
       tokenProvider: tokenProvider ?? this.tokenProvider,
       verifyChecksum: verifyChecksum ?? this.verifyChecksum,
-      autoDeleteAfterInstall: autoDeleteAfterInstall ?? this.autoDeleteAfterInstall,
+      autoDeleteAfterInstall:
+          autoDeleteAfterInstall ?? this.autoDeleteAfterInstall,
     );
   }
 }

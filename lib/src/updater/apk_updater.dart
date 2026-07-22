@@ -38,7 +38,8 @@ class ApkUpdater {
     UpdateInstaller? installer,
     ApkDownloadService? downloadService,
     this.timeout = const Duration(seconds: 60),
-  }) : _githubApi = githubApi ??
+  }) : _githubApi =
+           githubApi ??
            GitHubApi(
              dio: Dio(
                BaseOptions(
@@ -153,6 +154,7 @@ class ApkUpdater {
     return _installer.install(
       apkPath: apkPath,
       autoDelete: _config.autoDeleteAfterInstall,
+      closeAppAfterInstall: _config.closeAppAfterInstall,
     );
   }
 
