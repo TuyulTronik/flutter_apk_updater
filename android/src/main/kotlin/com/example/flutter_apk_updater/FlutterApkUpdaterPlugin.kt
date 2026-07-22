@@ -1,23 +1,22 @@
 package com.example.flutter_apk_updater
 
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
-import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
-import android.app.Activity
-import android.os.Environment
-import android.os.StatFs
-import android.provider.Settings
 import io.flutter.embedding.engine.plugins.FlutterPlugin
+import io.flutter.embedding.engine.plugins.activity.ActivityAware
+import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
-class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
+class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
 
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
+    private var activity: Activity? = null  // ✅ Deklarasi field activity
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -74,7 +73,6 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 val canRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.packageManager.canRequestPackageInstalls()
                 } else {
-                    // Untuk Android 7- (API < 26), permission tidak diperlukan
                     true
                 }
                 result.success(canRequest)
@@ -83,8 +81,8 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             "openInstallSettings" -> {
                 try {
                     val intent = Intent(
-                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        Uri.parse("package:${context.packageName}")
+                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        android.net.Uri.parse("package:${context.packageName}")
                     )
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
@@ -100,30 +98,33 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
             "getFreeSpace" -> {
                 try {
-                    // Gunakan context.filesDir untuk Android 10+
                     val path = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        context.filesDir.path // Lebih aman untuk Android 10+
+                        context.filesDir.path
                     } else {
-                        Environment.getDataDirectory().path
+                        android.os.Environment.getDataDirectory().path
                     }
 
-                    val stat = StatFs(path)
+                    val stat = android.os.StatFs(path)
                     val freeBytes = stat.availableBlocksLong * stat.blockSizeLong
                     result.success(freeBytes)
                 } catch (e: Exception) {
                     result.error("storage_error", e.message, null)
                 }
             }
-             "closeApp" -> {
-                   _closeAppWithRestart()
-                    result.success(null)
-             }
+
+            // ✅ METHOD BARU: closeApp
+            "closeApp" -> {
+                _closeAppWithRestart()
+                result.success(null)
+            }
+
             else -> {
                 result.notImplemented()
             }
         }
     }
-  // ✅ METHOD BARU: Close app dengan restart intent (diadaptasi dari terminate_restart)
+
+    // ✅ METHOD CLOSE APP (diadaptasi dari terminate_restart)
     private fun _closeAppWithRestart() {
         try {
             val currentActivity = activity
@@ -152,12 +153,16 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                         // Fallback
                         System.exit(0)
                     }
-                }, 300) // 300ms cukup
+                }, 300)
 
             } else {
                 // Fallback: finish activity + exit
                 Handler(Looper.getMainLooper()).postDelayed({
-                    currentActivity.finishAndRemoveTask()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                        currentActivity.finishAndRemoveTask()
+                    } else {
+                        currentActivity.finish()
+                    }
                     System.exit(0)
                 }, 300)
             }
@@ -173,7 +178,7 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     }
 
     // ============================================================
-    // ActivityAware Implementation
+    // ✅ ActivityAware Implementation
     // ============================================================
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
@@ -190,10 +195,8 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
     override fun onDetachedFromActivity() {
         activity = null
     }
-    
-    override fun onDetachedFromEngine(
-        binding: FlutterPlugin.FlutterPluginBinding
-    ) {
+
+    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         channel.setMethodCallHandler(null)
     }
 }
