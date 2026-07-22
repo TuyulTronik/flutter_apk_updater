@@ -495,7 +495,8 @@ if (installResult.isError) {
   }
 }
 ```
-> **Note**: Untuk contoh implementasi yang lebih lengkap bisa cek **example** dalam repository.
+## Note :
+> **Catatan**: Untuk contoh implementasi yang lebih lengkap bisa cek **example** dalam repository.
 ---
 
 # 🔧 Troubleshooting
