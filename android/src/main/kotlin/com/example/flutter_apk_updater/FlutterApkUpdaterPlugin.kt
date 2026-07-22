@@ -123,23 +123,41 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         }
     }
-   private fun _closeApp() {
+  private fun _closeApp() {
     try {
         val activity = context as? Activity
         
-        // ✅ Cukup finish semua aktivitas
+        // 1. Tutup semua aktivitas (biar keluar dari recent apps)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             activity?.finishAndRemoveTask()
         } else {
             activity?.finish()
         }
         
-        // ❌ Jangan System.exit!
-        // Biarkan sistem yang mengelola lifecycle
+        // 2. ✅ Hentikan proses app setelah delay
+        // Delay ini penting agar:
+        // - Installer sempat terbuka
+        // - Activity finish selesai
+        Handler(Looper.getMainLooper()).postDelayed({
+            try {
+                // Method 1: System.exit (standar)
+                System.exit(0)
+            } catch (e: Exception) {
+                // Method 2: Kill process (fallback)
+                android.os.Process.killProcess(android.os.Process.myPid())
+            }
+        }, 500) // 500ms cukup
+        
     } catch (e: Exception) {
-        // Ignore
+        // Ultimate fallback: langsung exit
+        try {
+            System.exit(0)
+        } catch (_: Exception) {
+            android.os.Process.killProcess(android.os.Process.myPid())
+        }
     }
 }
+
     override fun onDetachedFromEngine(
         binding: FlutterPlugin.FlutterPluginBinding
     ) {
