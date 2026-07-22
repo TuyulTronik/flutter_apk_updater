@@ -16,7 +16,7 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
 
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
-    private var activity: Activity? = null  // ✅ Deklarasi field activity
+    private var activity: Activity? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -47,7 +47,6 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                     return
                 }
 
-                // Cek permission untuk Android 8+ (API 26+)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (!context.packageManager.canRequestPackageInstalls()) {
                         result.error(
@@ -112,9 +111,9 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                 }
             }
 
-            // ✅ METHOD BARU: closeApp
             "closeApp" -> {
-                _closeAppWithRestart()
+                // ✅ Panggil close dengan delay lebih panjang
+                _closeAppWithDelay()
                 result.success(null)
             }
 
@@ -124,61 +123,48 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
         }
     }
 
-    // ✅ METHOD CLOSE APP (diadaptasi dari terminate_restart)
-    private fun _closeAppWithRestart() {
+    // ✅ METHOD CLOSE APP DENGAN DELAY 1500ms
+    private fun _closeAppWithDelay() {
         try {
             val currentActivity = activity
             if (currentActivity == null) {
-                // Fallback: System.exit
                 System.exit(0)
                 return
             }
 
-            // 1. Dapatkan package manager dan intent
-            val packageManager = context.packageManager
-            val packageName = context.packageName
-            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
-
-            if (launchIntent != null) {
-                // 2. Buat restart intent (ini yang paling penting!)
-                val mainIntent = Intent.makeRestartActivityTask(launchIntent.component)
-                
-                // 3. Start intent baru dengan delay (biar installer sempat terbuka)
-                Handler(Looper.getMainLooper()).postDelayed({
-                    try {
-                        context.startActivity(mainIntent)
-                        // 4. Exit proses lama
-                        System.exit(0)
-                    } catch (e: Exception) {
-                        // Fallback
-                        System.exit(0)
-                    }
-                }, 300)
-
-            } else {
-                // Fallback: finish activity + exit
-                Handler(Looper.getMainLooper()).postDelayed({
+            // ✅ Delay 1500ms agar installer benar-benar terbuka dan app lama siap ditutup
+            Handler(Looper.getMainLooper()).postDelayed({
+                try {
+                    // 1. Hapus dari recent apps
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         currentActivity.finishAndRemoveTask()
                     } else {
                         currentActivity.finish()
                     }
+
+                    // 2. Hentikan proses
+                    Handler(Looper.getMainLooper()).postDelayed({
+                        try {
+                            System.exit(0)
+                        } catch (e: Exception) {
+                            try {
+                                android.os.Process.killProcess(android.os.Process.myPid())
+                            } catch (_: Exception) {}
+                        }
+                    }, 300)
+
+                } catch (e: Exception) {
                     System.exit(0)
-                }, 300)
-            }
+                }
+            }, 1500) // ← Delay 1.5 detik
 
         } catch (e: Exception) {
-            // Ultimate fallback
-            try {
-                System.exit(0)
-            } catch (_: Exception) {
-                // Ignore
-            }
+            System.exit(0)
         }
     }
 
     // ============================================================
-    // ✅ ActivityAware Implementation
+    // ActivityAware Implementation
     // ============================================================
     override fun onAttachedToActivity(binding: ActivityPluginBinding) {
         activity = binding.activity
