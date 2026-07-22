@@ -115,7 +115,7 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
             }
              "closeApp" -> {
-                    _closeApp()
+                   _closeAppWithRestart()
                     result.success(null)
              }
             else -> {
@@ -123,41 +123,74 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
             }
         }
     }
-  private fun _closeApp() {
-    try {
-        val activity = context as? Activity
-        
-        // 1. Tutup semua aktivitas (biar keluar dari recent apps)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            activity?.finishAndRemoveTask()
-        } else {
-            activity?.finish()
-        }
-        
-        // 2. ✅ Hentikan proses app setelah delay
-        // Delay ini penting agar:
-        // - Installer sempat terbuka
-        // - Activity finish selesai
-        Handler(Looper.getMainLooper()).postDelayed({
-            try {
-                // Method 1: System.exit (standar)
-                System.exit(0)
-            } catch (e: Exception) {
-                // Method 2: Kill process (fallback)
-                android.os.Process.killProcess(android.os.Process.myPid())
-            }
-        }, 500) // 500ms cukup
-        
-    } catch (e: Exception) {
-        // Ultimate fallback: langsung exit
+  // ✅ METHOD BARU: Close app dengan restart intent (diadaptasi dari terminate_restart)
+    private fun _closeAppWithRestart() {
         try {
-            System.exit(0)
-        } catch (_: Exception) {
-            android.os.Process.killProcess(android.os.Process.myPid())
+            val currentActivity = activity
+            if (currentActivity == null) {
+                // Fallback: System.exit
+                System.exit(0)
+                return
+            }
+
+            // 1. Dapatkan package manager dan intent
+            val packageManager = context.packageManager
+            val packageName = context.packageName
+            val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+
+            if (launchIntent != null) {
+                // 2. Buat restart intent (ini yang paling penting!)
+                val mainIntent = Intent.makeRestartActivityTask(launchIntent.component)
+                
+                // 3. Start intent baru dengan delay (biar installer sempat terbuka)
+                Handler(Looper.getMainLooper()).postDelayed({
+                    try {
+                        context.startActivity(mainIntent)
+                        // 4. Exit proses lama
+                        System.exit(0)
+                    } catch (e: Exception) {
+                        // Fallback
+                        System.exit(0)
+                    }
+                }, 300) // 300ms cukup
+
+            } else {
+                // Fallback: finish activity + exit
+                Handler(Looper.getMainLooper()).postDelayed({
+                    currentActivity.finishAndRemoveTask()
+                    System.exit(0)
+                }, 300)
+            }
+
+        } catch (e: Exception) {
+            // Ultimate fallback
+            try {
+                System.exit(0)
+            } catch (_: Exception) {
+                // Ignore
+            }
         }
     }
-}
 
+    // ============================================================
+    // ActivityAware Implementation
+    // ============================================================
+    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+
+    override fun onDetachedFromActivityForConfigChanges() {
+        activity = null
+    }
+
+    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
+        activity = binding.activity
+    }
+
+    override fun onDetachedFromActivity() {
+        activity = null
+    }
+    
     override fun onDetachedFromEngine(
         binding: FlutterPlugin.FlutterPluginBinding
     ) {
