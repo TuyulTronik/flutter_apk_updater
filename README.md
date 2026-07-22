@@ -300,6 +300,8 @@ final error = Error(failure);
 
 # 💡 Contoh Lengkap
 ---
+> **Catatan**: Untuk contoh implementasi yang lebih lengkap bisa cek **example** dalam repository.
+
 ```dart
 import 'package:flutter/material.dart';
 import 'package:flutter_apk_updater/flutter_apk_updater.dart';
@@ -495,8 +497,6 @@ if (installResult.isError) {
   }
 }
 ```
-## Note :
-> **Catatan**: Untuk contoh implementasi yang lebih lengkap bisa cek **example** dalam repository.
 ---
 
 # 🔧 Troubleshooting
