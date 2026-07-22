@@ -1,58 +1,93 @@
 import 'package:flutter/material.dart';
-// import 'dart:async';
-
-// import 'package:flutter/services.dart';
-// import 'package:flutter_apk_updater/flutter_apk_updater.dart';
+import 'screens/update_screen.dart';
 
 void main() {
   runApp(const MyApp());
 }
 
-class MyApp extends StatefulWidget {
+class MyApp extends StatelessWidget {
   const MyApp({super.key});
-
-  @override
-  State<MyApp> createState() => _MyAppState();
-}
-
-class _MyAppState extends State<MyApp> {
-  // String _platformVersion = 'Unknown';
-  // final _flutterApkUpdaterPlugin = FlutterApkUpdater();
-
-  @override
-  void initState() {
-    super.initState();
-    // initPlatformState();
-  }
-
-  // Platform messages are asynchronous, so we initialize in an async method.
-  // Future<void> initPlatformState() async {
-  //   String platformVersion;
-  //   // Platform messages may fail, so we use a try/catch PlatformException.
-  //   // We also handle the message potentially returning null.
-  //   try {
-  //     platformVersion =
-  //         await _flutterApkUpdaterPlugin.getPlatformVersion() ?? 'Unknown platform version';
-  //   } on PlatformException {
-  //     platformVersion = 'Failed to get platform version.';
-  //   }
-
-  //   // If the widget was removed from the tree while the asynchronous platform
-  //   // message was in flight, we want to discard the reply rather than calling
-  //   // setState to update our non-existent appearance.
-  //   if (!mounted) return;
-
-  //   setState(() {
-  //     _platformVersion = platformVersion;
-  //   });
-  // }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      home: Scaffold(
-        appBar: AppBar(title: const Text('Plugin example app')),
-        body: Center(child: Text('Running on: _platformVersion\n')),
+      title: 'APK Updater Example',
+      theme: ThemeData(
+        primarySwatch: Colors.blue,
+        useMaterial3: true,
+      ),
+      home: const MyHomePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class MyHomePage extends StatefulWidget {
+  const MyHomePage({super.key});
+
+  @override
+  State<MyHomePage> createState() => _MyHomePageState();
+}
+
+class _MyHomePageState extends State<MyHomePage> {
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('Flutter APK Updater'),
+        centerTitle: true,
+      ),
+      body: Center(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(
+                Icons.system_update,
+                size: 80,
+                color: Colors.blue,
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'APK Updater Demo',
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 16),
+              const Text(
+                'Contoh implementasi flutter_apk_updater package',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.grey,
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const UpdateScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.update),
+                label: const Text('Buka Update Checker'),
+                style: ElevatedButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 32,
+                    vertical: 16,
+                  ),
+                  backgroundColor: Colors.blue,
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }

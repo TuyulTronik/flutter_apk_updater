@@ -304,59 +304,159 @@ final error = Error(failure);
 import 'package:flutter/material.dart';
 import 'package:flutter_apk_updater/flutter_apk_updater.dart';
 
-class UpdateChecker extends StatefulWidget {
-  @override
-  _UpdateCheckerState createState() => _UpdateCheckerState();
+void main() {
+  runApp(const MyApp());
 }
 
-class _UpdateCheckerState extends State<UpdateChecker> {
-  final updater = ApkUpdater(
-    config: ApkUpdaterConfig(
-      owner: 'TuyulTronik',
-      repository: 'my_app',
-      apkPattern: 'app-release',
-      verifyChecksum: true, // Aktifkan verifikasi
-    ),
-  );
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
-  Future<void> _checkAndUpdate() async {
-    // 1. Cek update
-    final checkResult = await updater.check();
-    
-    if (checkResult.isSuccess) {
-      final info = (checkResult as Success<UpdateInfo>).data;
-      
-      if (info.hasUpdate) {
-        // 2. Download
-        final downloadResult = await updater.download(
-          updateInfo: info,
-          onProgress: (p) => print('Download: ${p.progress * 100}%'),
-        );
-        
-        if (downloadResult.isSuccess) {
-          final downloadInfo = (downloadResult as Success<DownloadInfo>).data;
-          
-          // 3. Cek permission
-          final hasPermission = await updater.canRequestPackageInstalls();
-          
-          if (!hasPermission) {
-            // Buka settings
-            await updater.openInstallSettings();
-            return;
-          }
-          
-          // 4. Install
-          final installResult = await updater.install(
-            apkPath: downloadInfo.localFilePath,
-          );
-          
-          if (installResult.isError) {
-            final failure = (installResult as Error<void>).failure;
-            print('Install gagal: ${failure.message}');
-          }
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'APK Updater Simple',
+      theme: ThemeData(primarySwatch: Colors.blue, useMaterial3: true),
+      home: const SimpleUpdatePage(),
+      debugShowCheckedModeBanner: false,
+    );
+  }
+}
+
+class SimpleUpdatePage extends StatefulWidget {
+  const SimpleUpdatePage({Key? key}) : super(key: key);
+
+  @override
+  State<SimpleUpdatePage> createState() => _SimpleUpdatePageState();
+}
+
+class _SimpleUpdatePageState extends State<SimpleUpdatePage> {
+  late ApkUpdater updater;
+  String status = 'Tekan tombol untuk mulai';
+  UpdateInfo? updateInfo;
+  double downloadProgress = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    updater = ApkUpdater(
+      config: const ApkUpdaterConfig(
+        owner: 'TuyulTronik',
+        repository: 'flutter_apk_updater',
+        apkPattern: 'app-release',
+      ),
+    );
+  }
+
+  Future<void> checkAndUpdate() async {
+    try {
+      setState(() => status = 'Checking updates...');
+
+      final checkResult = await updater.check();
+
+      if (checkResult.isSuccess) {
+        final info = (checkResult as Success<UpdateInfo>).data;
+        setState(() {
+          updateInfo = info;
+          status = info.hasUpdate
+              ? 'Update available: ${info.latestVersion}'
+              : 'Already up to date';
+        });
+
+        if (info.hasUpdate) {
+          await downloadAndInstall(info);
         }
+      } else {
+        final error = (checkResult as Error<UpdateInfo>).failure;
+        setState(() => status = 'Error: ${error.message}');
       }
+    } catch (e) {
+      setState(() => status = 'Exception: $e');
     }
+  }
+
+  Future<void> downloadAndInstall(UpdateInfo info) async {
+    try {
+      setState(() => status = 'Downloading...');
+
+      final downloadResult = await updater.download(
+        updateInfo: info,
+        onProgress: (progress) {
+          setState(() {
+            downloadProgress = progress.progress;
+            status =
+                'Downloading: ${(progress.progress * 100).toStringAsFixed(1)}%';
+          });
+        },
+      );
+
+      if (downloadResult.isSuccess) {
+        final downloadInfo = (downloadResult as Success<DownloadInfo>).data;
+
+        setState(() => status = 'Checking permissions...');
+
+        final hasPermission = await updater.canRequestPackageInstalls();
+
+        if (!hasPermission) {
+          setState(() => status = 'Permission required. Opening settings...');
+          await updater.openInstallSettings();
+          return;
+        }
+
+        setState(() => status = 'Installing...');
+
+        final installResult =
+            await updater.install(apkPath: downloadInfo.localFilePath);
+
+        if (installResult.isSuccess) {
+          setState(() => status = 'Installation started!');
+        } else {
+          final error = (installResult as Error<void>).failure;
+          setState(() => status = 'Install failed: ${error.message}');
+        }
+      } else {
+        final error = (downloadResult as Error<DownloadInfo>).failure;
+        setState(() => status = 'Download failed: ${error.message}');
+      }
+    } catch (e) {
+      setState(() => status = 'Exception: $e');
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Simple APK Updater')),
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.system_update, size: 64, color: Colors.blue),
+              const SizedBox(height: 32),
+              Text(
+                status,
+                textAlign: TextAlign.center,
+                style: const TextStyle(fontSize: 16),
+              ),
+              const SizedBox(height: 32),
+              if (downloadProgress > 0 && downloadProgress < 1)
+                Column(
+                  children: [
+                    LinearProgressIndicator(value: downloadProgress),
+                    const SizedBox(height: 16),
+                  ],
+                ),
+              ElevatedButton.icon(
+                onPressed: checkAndUpdate,
+                icon: const Icon(Icons.update),
+                label: const Text('Check & Update'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 }
 ```
@@ -395,6 +495,7 @@ if (installResult.isError) {
   }
 }
 ```
+> **Note**: Untuk contoh implementasi yang lebih lengkap bisa cek **example** dalam repository.
 ---
 
 # 🔧 Troubleshooting
