@@ -76,6 +76,7 @@ dependencies:
       ref: main
 ```
 ---
+
 # ⚙️ Konfigurasi
 ---
 1. Android Manifest
@@ -83,7 +84,8 @@ Tambahkan permission berikut ke android/app/src/main/AndroidManifest.xml:
 ```xml
 <uses-permission android:name="android.permission.INTERNET" />
 <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
-<uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+<!-- READ_EXTERNAL_STORAGE: biasanya tidak diperlukan karena file disimpan di direktori aplikasi (getApplicationSupportDirectory()).
+     Hanya aktifkan jika Anda menyimpan APK di storage eksternal dan menarget API yang memerlukan izin ini. -->
 ```
 2. FileProvider
 Tambahkan provider ke AndroidManifest.xml:
@@ -105,6 +107,7 @@ Tambahkan provider ke AndroidManifest.xml:
 1. Buat Release di repository GitHub Anda
 2. Upload file APK sebagai asset
 3. Pastikan tag version mengikuti format SemVer (contoh: 1.0.0, v2.1.3)
+4. Hanya support awalan 'v' atau 'V'
 ```
 ### Advanced Configuration
 
@@ -135,8 +138,10 @@ final updater = ApkUpdater(
 );
 ```
 ---
+
 # 🚀 Penggunaan Dasar
 ---
+
 ## Inisialisasi
 ```dart
 import 'package:flutter_apk_updater/flutter_apk_updater.dart';
@@ -205,6 +210,7 @@ if (installResult.isSuccess) {
 }
 ```
 ---
+
 # 📖 API Reference
 ## ApkUpdater
 Kelas utama untuk melakukan update APK.
@@ -291,9 +297,8 @@ final error = Error(failure);
 | install_failed | Gagal install APK |
 | permission_denied |	Permission install tidak diberikan |
 ---
-# 💡 Contoh Lengkap
-Contoh UI Update Checker
 
+# 💡 Contoh Lengkap
 ---
 ```dart
 import 'package:flutter/material.dart';
@@ -357,9 +362,10 @@ class _UpdateCheckerState extends State<UpdateChecker> {
 ```
 ## Menangani Permission Denied
 ```dart
-try {
-  await updater.install(apkPath: path);
-} on Failure catch (failure) {
+final installResult = await updater.install(apkPath: path);
+
+if (installResult.isError) {
+  final failure = (installResult as Error<void>).failure;
   if (failure.code == 'permission_denied') {
     // Tampilkan dialog dan arahkan ke settings
     showDialog(
@@ -377,6 +383,7 @@ try {
           ),
           ElevatedButton(
             onPressed: () async {
+              // Gunakan method dari updater untuk membuka settings install apps
               await updater.openInstallSettings();
               Navigator.pop(context);
             },
@@ -389,6 +396,7 @@ try {
 }
 ```
 ---
+
 # 🔧 Troubleshooting
 ## Permission Denied
 Masalah: Installasi gagal dengan error "permission_denied"
@@ -399,11 +407,11 @@ Solusi:
 2. Pada Android 8+, pengguna harus mengizinkan "Install unknown apps" untuk aplikasi Anda
 3. Arahkan pengguna ke settings:
 ```dart
-if (await canRequestPackageInstalls()) {
+if (await updater.canRequestPackageInstalls()) {
   // Install
 } else {
-  // Arahkan ke settings
-  await openAppSettings();
+  // Arahkan ke settings untuk mengizinkan "Install unknown apps"
+  await updater.openInstallSettings();
 }
 ```
 ## Asset Tidak Ditemukan
@@ -427,15 +435,8 @@ Solusi:
 2. Download akan tetap tersimpan di getApplicationSupportDirectory()
 3. Saat mencoba download ulang, seharusnya resume dari session yang tersimpan
 4. Jika tidak resume, hapus session: await DownloadSessionStorage().clear()
-
 ---
-# 📄 Lisensi
----
-Copyright © 2026 TuyulTronik
 
-Dilisensikan di bawah MIT License.
-
----
 # Checksum Verification
 ## Untuk mengaktifkan verifikasi integritas APK:
 
@@ -455,6 +456,14 @@ Package akan otomatis:
  - Membandingkan keduanya
  - Gagal jika tidak match
 ---
+
+# 📄 Lisensi
+---
+Copyright © 2026 TuyulTronik
+Dilisensikan di bawah MIT License.
+
+---
+
 # Additional information
 - Repository : [https://github.com/TuyulTronik/flutter_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
 - Inspired By : [github_release_apk_updater](https://github.com/TuyulTronik/flutter_apk_updater) 
