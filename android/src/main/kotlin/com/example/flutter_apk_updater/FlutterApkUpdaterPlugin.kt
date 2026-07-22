@@ -112,7 +112,6 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
             }
 
             "closeApp" -> {
-                // ✅ Panggil close dengan delay lebih panjang
                 _closeAppWithDelay()
                 result.success(null)
             }
@@ -123,7 +122,17 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
         }
     }
 
-    // ✅ METHOD CLOSE APP DENGAN DELAY 1500ms
+    /**
+     * Menutup aplikasi dengan delay agar installer terbuka terlebih dahulu.
+     * 
+     * Flow:
+     * 1. Delay 1200ms (tunggu installer terbuka)
+     * 2. Hapus app dari recent apps (finishAndRemoveTask)
+     * 3. Delay 300ms (tunggu proses finish selesai)
+     * 4. Hentikan proses app (System.exit / Process.killProcess)
+     * 
+     * Hasil: Recent apps hanya menampilkan 1 entri (app versi baru)
+     */
     private fun _closeAppWithDelay() {
         try {
             val currentActivity = activity
@@ -132,33 +141,38 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                 return
             }
 
-            // ✅ Delay 1500ms agar installer benar-benar terbuka dan app lama siap ditutup
+            // Step 1: Tunggu installer terbuka (1200ms)
             Handler(Looper.getMainLooper()).postDelayed({
                 try {
-                    // 1. Hapus dari recent apps
+                    // Step 2: Hapus dari recent apps
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
                         currentActivity.finishAndRemoveTask()
                     } else {
                         currentActivity.finish()
                     }
 
-                    // 2. Hentikan proses
+                    // Step 3: Tunggu proses finish selesai (300ms)
                     Handler(Looper.getMainLooper()).postDelayed({
                         try {
+                            // Step 4: Hentikan proses app
                             System.exit(0)
                         } catch (e: Exception) {
                             try {
                                 android.os.Process.killProcess(android.os.Process.myPid())
-                            } catch (_: Exception) {}
+                            } catch (_: Exception) {
+                                // Ignore
+                            }
                         }
                     }, 300)
 
                 } catch (e: Exception) {
+                    // Fallback: langsung exit
                     System.exit(0)
                 }
-            }, 1500) // ← Delay 1.5 detik
+            }, 1200) // ← Optimal: 1200ms
 
         } catch (e: Exception) {
+            // Ultimate fallback
             System.exit(0)
         }
     }
