@@ -124,25 +124,20 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
         }
     }
     private fun _closeApp() {
-        try {
-            // 1. Selesai semua aktivitas
-            val activity = context as? Activity
+    try {
+        val currentActivity = activity
+        if (currentActivity != null) {
+            // ✅ Method ini menghapus app dari recent apps!
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                activity?.finishAndRemoveTask()
+                currentActivity.finishAndRemoveTask()
             } else {
-                activity?.finish()
+                currentActivity.finish()
             }
-
-            // 2. Force exit (fallback)
-            Handler(Looper.getMainLooper()).postDelayed({
-                System.exit(0)
-            }, 100)
-
-        } catch (e: Exception) {
-            // 3. Ultimate fallback
-            System.exit(0)
         }
+    } catch (e: Exception) {
+        // Ignore
     }
+}
     override fun onDetachedFromEngine(
         binding: FlutterPlugin.FlutterPluginBinding
     ) {

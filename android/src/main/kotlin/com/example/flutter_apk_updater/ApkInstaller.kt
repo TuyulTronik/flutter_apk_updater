@@ -27,6 +27,10 @@ class ApkInstaller(
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     addFlags(Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION)
                 }
+                  // ✅ Flag untuk clear task saat installer terbuka
+              if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                addFlags(Intent.FLAG_ACTIVITY_CLEAR_TASK)
+                }
             }
 
             val packageManager = context.packageManager
