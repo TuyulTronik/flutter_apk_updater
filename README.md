@@ -226,6 +226,716 @@ if (installResult.isSuccess) {
 }
 ```
 ---
+---
+
+# 📝 Menampilkan Changelog / Release Notes
+---
+
+Package ini menyediakan akses ke release notes (changelog) dari GitHub Release. Berikut adalah berbagai cara untuk menampilkannya:
+
+## Opsi 1: Menampilkan Changelog dalam Dialog
+
+Tampilkan changelog dalam dialog sebelum user melakukan download:
+
+```dart
+Future<void> showUpdateDialog(BuildContext context, UpdateInfo updateInfo) {
+  return showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: Text('Update Tersedia'),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Versi: ${updateInfo.latestVersion}',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
+            SizedBox(height: 12),
+            Text(
+              'Riwayat Perubahan:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              updateInfo.release.releaseNotes.isEmpty 
+                ? 'Tidak ada catatan perubahan' 
+                : updateInfo.release.releaseNotes,
+              style: TextStyle(fontSize: 14),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Dirilis: ${updateInfo.release.publishedAt.toLocal()}',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: Text('Tidak Sekarang'),
+        ),
+        ElevatedButton(
+          onPressed: () {
+            Navigator.pop(context);
+            // Lanjutkan ke download
+          },
+          child: Text('Update Sekarang'),
+        ),
+      ],
+    ),
+  );
+}
+```
+
+### Penggunaan:
+```dart
+final checkResult = await updater.check();
+
+if (checkResult.isSuccess) {
+  final updateInfo = (checkResult as Success<UpdateInfo>).data;
+  
+  if (updateInfo.hasUpdate && mounted) {
+    await showUpdateDialog(context, updateInfo);
+  }
+}
+```
+
+---
+
+## Opsi 2: Menampilkan Changelog dalam Bottom Sheet
+
+Untuk tampilan yang lebih fleksibel, gunakan bottom sheet:
+
+```dart
+Future<void> showUpdateBottomSheet(BuildContext context, UpdateInfo updateInfo) {
+  return showModalBottomSheet(
+    context: context,
+    builder: (context) => Container(
+      padding: EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Update Aplikasi',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              IconButton(
+                icon: Icon(Icons.close),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+          Divider(),
+          Expanded(
+            child: SingleChildScrollView(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _buildVersionInfo(updateInfo),
+                  SizedBox(height: 16),
+                  _buildReleaseNotes(updateInfo),
+                ],
+              ),
+            ),
+          ),
+          Divider(),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.pop(context);
+                // Lanjutkan ke download
+              },
+              child: Text('Download & Install'),
+            ),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+Widget _buildVersionInfo(UpdateInfo updateInfo) {
+  return Container(
+    padding: EdgeInsets.all(12),
+    decoration: BoxDecoration(
+      color: Colors.blue.shade50,
+      borderRadius: BorderRadius.circular(8),
+    ),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Versi Baru: ${updateInfo.latestVersion}',
+          style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Versi Saat Ini: ${updateInfo.currentVersion}',
+          style: TextStyle(fontSize: 14, color: Colors.grey.shade700),
+        ),
+        SizedBox(height: 4),
+        Text(
+          'Dirilis: ${formatDate(updateInfo.release.publishedAt)}',
+          style: TextStyle(fontSize: 12, color: Colors.grey),
+        ),
+      ],
+    ),
+  );
+}
+
+Widget _buildReleaseNotes(UpdateInfo updateInfo) {
+  return Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        'Perubahan:',
+        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+      ),
+      SizedBox(height: 8),
+      Text(
+        updateInfo.release.releaseNotes.isEmpty
+            ? '• Tidak ada catatan perubahan\n\nPastikan repository GitHub Anda memiliki release notes yang terisi.'
+            : updateInfo.release.releaseNotes,
+        style: TextStyle(fontSize: 13, height: 1.6),
+      ),
+    ],
+  );
+}
+
+String formatDate(DateTime date) {
+  // Format: "23 Juli 2026 pukul 14:30"
+  final months = [
+    'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  final localDate = date.toLocal();
+  return '${localDate.day} ${months[localDate.month - 1]} ${localDate.year} '
+      'pukul ${localDate.hour.toString().padLeft(2, '0')}:'
+      '${localDate.minute.toString().padLeft(2, '0')}';
+}
+```
+
+---
+
+## Opsi 3: Custom Widget untuk Changelog
+
+Buat widget yang reusable untuk menampilkan changelog dengan styling kustom:
+
+```dart
+class ChangelogWidget extends StatelessWidget {
+  final UpdateInfo updateInfo;
+  final VoidCallback onUpdatePressed;
+
+  const ChangelogWidget({
+    required this.updateInfo,
+    required this.onUpdatePressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final releaseNotes = updateInfo.release.releaseNotes;
+    final formattedNotes = _parseReleaseNotes(releaseNotes);
+
+    return Card(
+      margin: EdgeInsets.all(16),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            padding: EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.green.shade50,
+              borderRadius: BorderRadius.only(
+                topLeft: Radius.circular(12),
+                topRight: Radius.circular(12),
+              ),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info_outline, color: Colors.green),
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Update Tersedia',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 16,
+                        ),
+                      ),
+                      Text(
+                        '${updateInfo.currentVersion} → ${updateInfo.latestVersion}',
+                        style: TextStyle(fontSize: 13, color: Colors.grey),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Perubahan Terbaru:',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                ),
+                SizedBox(height: 12),
+                ...formattedNotes.map((note) => Padding(
+                  padding: EdgeInsets.only(bottom: 8),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('• ', style: TextStyle(fontWeight: FontWeight.bold)),
+                      Expanded(child: Text(note, style: TextStyle(fontSize: 13))),
+                    ],
+                  ),
+                )),
+                SizedBox(height: 8),
+                Text(
+                  'Dirilis: ${formatDate(updateInfo.release.publishedAt)}',
+                  style: TextStyle(fontSize: 12, color: Colors.grey),
+                ),
+              ],
+            ),
+          ),
+          Divider(height: 0),
+          Padding(
+            padding: EdgeInsets.all(16),
+            child: SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: onUpdatePressed,
+                child: Text('Update Sekarang'),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// Parse release notes menjadi list of strings
+  /// Mendukung format:
+  /// - Bullet points dengan "-" atau "•"
+  /// - Numbered lists dengan "1."
+  /// - Paragraphs yang dipisah dengan newline
+  List<String> _parseReleaseNotes(String notes) {
+    if (notes.isEmpty) {
+      return ['Tidak ada catatan perubahan'];
+    }
+
+    final lines = notes.split('\n');
+    final parsedNotes = <String>[];
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+      if (trimmed.isEmpty) continue;
+
+      // Hapus bullet points atau numbering
+      final cleaned = trimmed
+          .replaceFirst(RegExp(r'^[-•]\s*'), '')
+          .replaceFirst(RegExp(r'^\d+\.\s*'), '');
+
+      if (cleaned.isNotEmpty) {
+        parsedNotes.add(cleaned);
+      }
+    }
+
+    return parsedNotes.isEmpty ? ['Tidak ada catatan perubahan'] : parsedNotes;
+  }
+}
+```
+
+### Penggunaan:
+```dart
+ChangelogWidget(
+  updateInfo: updateInfo,
+  onUpdatePressed: () {
+    // Trigger download
+  },
+)
+```
+
+---
+
+## Opsi 4: Ekstrak Changelog Tertentu
+
+Jika Anda ingin menampilkan hanya bagian tertentu dari release notes:
+
+```dart
+class ChangelogParser {
+  /// Ekstrak changelog dari format markdown yang umum
+  /// Format yang didukung:
+  /// ## Features
+  /// - Fitur 1
+  /// - Fitur 2
+  /// ## Bug Fixes
+  /// - Bug 1
+  /// - Bug 2
+  static Map<String, List<String>> parseMarkdownChangelog(String notes) {
+    final sections = <String, List<String>>{};
+    final lines = notes.split('\n');
+    
+    String? currentSection;
+    List<String> currentItems = [];
+
+    for (var line in lines) {
+      final trimmed = line.trim();
+
+      // Deteksi section header (## atau ###)
+      if (trimmed.startsWith('##')) {
+        if (currentSection != null && currentItems.isNotEmpty) {
+          sections[currentSection] = currentItems;
+        }
+        currentSection = trimmed
+            .replaceFirst(RegExp(r'^#+\s*'), '')
+            .trim();
+        currentItems = [];
+        continue;
+      }
+
+      // Deteksi items dalam section (- atau •)
+      if (trimmed.startsWith('-') || trimmed.startsWith('•')) {
+        final item = trimmed
+            .replaceFirst(RegExp(r'^[-•]\s*'), '')
+            .trim();
+        if (item.isNotEmpty) {
+          currentItems.add(item);
+        }
+      }
+    }
+
+    // Tambahkan section terakhir
+    if (currentSection != null && currentItems.isNotEmpty) {
+      sections[currentSection] = currentItems;
+    }
+
+    return sections;
+  }
+
+  /// Extract changelog terstruktur dengan kategori
+  static StructuredChangelog parse(String notes) {
+    final sections = parseMarkdownChangelog(notes);
+
+    return StructuredChangelog(
+      features: sections['Features'] ?? [],
+      bugFixes: sections['Bug Fixes'] ?? sections['Bug Fixes'] ?? [],
+      improvements: sections['Improvements'] ?? sections['Improvements'] ?? [],
+      breaking: sections['Breaking Changes'] ?? [],
+      other: sections['Other Changes'] ?? [],
+    );
+  }
+}
+
+class StructuredChangelog {
+  final List<String> features;
+  final List<String> bugFixes;
+  final List<String> improvements;
+  final List<String> breaking;
+  final List<String> other;
+
+  StructuredChangelog({
+    required this.features,
+    required this.bugFixes,
+    required this.improvements,
+    required this.breaking,
+    required this.other,
+  });
+
+  bool get hasContent =>
+      features.isNotEmpty ||
+      bugFixes.isNotEmpty ||
+      improvements.isNotEmpty ||
+      breaking.isNotEmpty ||
+      other.isNotEmpty;
+}
+
+// Penggunaan:
+class StructuredChangelogWidget extends StatelessWidget {
+  final UpdateInfo updateInfo;
+
+  const StructuredChangelogWidget({required this.updateInfo});
+
+  @override
+  Widget build(BuildContext context) {
+    final changelog =
+        ChangelogParser.parse(updateInfo.release.releaseNotes);
+
+    return ListView(
+      children: [
+        if (changelog.breaking.isNotEmpty)
+          _buildSection('⚠️ Breaking Changes', changelog.breaking, Colors.red),
+        if (changelog.features.isNotEmpty)
+          _buildSection('✨ Fitur Baru', changelog.features, Colors.green),
+        if (changelog.improvements.isNotEmpty)
+          _buildSection('🚀 Perbaikan', changelog.improvements, Colors.blue),
+        if (changelog.bugFixes.isNotEmpty)
+          _buildSection('🐛 Perbaikan Bug', changelog.bugFixes, Colors.orange),
+        if (changelog.other.isNotEmpty)
+          _buildSection('📝 Lainnya', changelog.other, Colors.grey),
+      ],
+    );
+  }
+
+  Widget _buildSection(
+    String title,
+    List<String> items,
+    Color color,
+  ) {
+    return Padding(
+      padding: EdgeInsets.all(12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 14,
+              color: color,
+            ),
+          ),
+          SizedBox(height: 8),
+          ...items.map((item) => Padding(
+            padding: EdgeInsets.only(left: 16, bottom: 4),
+            child: Text('• $item', style: TextStyle(fontSize: 13)),
+          )),
+          SizedBox(height: 8),
+        ],
+      ),
+    );
+  }
+}
+```
+
+---
+
+## Opsi 5: Implementasi Lengkap dengan UpdateInfo
+
+Berikut adalah implementasi lengkap yang menggabungkan semuanya:
+
+```dart
+class UpdateCheckPage extends StatefulWidget {
+  const UpdateCheckPage({Key? key}) : super(key: key);
+
+  @override
+  State<UpdateCheckPage> createState() => _UpdateCheckPageState();
+}
+
+class _UpdateCheckPageState extends State<UpdateCheckPage> {
+  late ApkUpdater _updater;
+  UpdateInfo? _updateInfo;
+  bool _isLoading = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _initializeUpdater();
+  }
+
+  void _initializeUpdater() {
+    _updater = ApkUpdater(
+      config: const ApkUpdaterConfig(
+        owner: 'TuyulTronik',
+        repository: 'my_app',
+        apkPattern: 'app-release',
+      ),
+    );
+  }
+
+  Future<void> _checkForUpdates() async {
+    setState(() => _isLoading = true);
+
+    try {
+      final result = await _updater.check();
+
+      if (result.isSuccess) {
+        final updateInfo = (result as Success<UpdateInfo>).data;
+
+        setState(() => _updateInfo = updateInfo);
+
+        if (updateInfo.hasUpdate && mounted) {
+          _showUpdateDialog(updateInfo);
+        } else if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Aplikasi sudah versi terbaru')),
+          );
+        }
+      } else {
+        final failure = (result as Error<UpdateInfo>).failure;
+
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Error: ${failure.message}')),
+          );
+        }
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
+  Future<void> _showUpdateDialog(UpdateInfo updateInfo) async {
+    final shouldUpdate = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => _buildUpdateDialog(updateInfo),
+    );
+
+    if (shouldUpdate == true && mounted) {
+      _downloadAndInstall(updateInfo);
+    }
+  }
+
+  Widget _buildUpdateDialog(UpdateInfo updateInfo) {
+    return AlertDialog(
+      title: Row(
+        children: [
+          Icon(Icons.system_update, color: Colors.blue),
+          SizedBox(width: 8),
+          Text('Update Tersedia'),
+        ],
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              padding: EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.blue.shade50,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Versi Saat Ini'),
+                      Text(
+                        updateInfo.currentVersion,
+                        style: TextStyle(fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                  Icon(Icons.arrow_forward),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Versi Baru'),
+                      Text(
+                        updateInfo.latestVersion,
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 16),
+            Text(
+              'Perubahan:',
+              style: TextStyle(fontWeight: FontWeight.bold),
+            ),
+            SizedBox(height: 8),
+            Text(
+              updateInfo.release.releaseNotes.isEmpty
+                  ? 'Tidak ada catatan perubahan'
+                  : updateInfo.release.releaseNotes,
+              style: TextStyle(fontSize: 13),
+            ),
+            SizedBox(height: 8),
+            Text(
+              'Dirilis: ${formatDate(updateInfo.release.publishedAt)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey),
+            ),
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context, false),
+          child: Text('Nanti'),
+        ),
+        ElevatedButton(
+          onPressed: () => Navigator.pop(context, true),
+          child: Text('Update Sekarang'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _downloadAndInstall(UpdateInfo updateInfo) async {
+    // Implementation download dan install
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(title: const Text('Update Checker')),
+      body: Center(
+        child: ElevatedButton.icon(
+          onPressed: _isLoading ? null : _checkForUpdates,
+          icon: Icon(Icons.refresh),
+          label: Text(_isLoading ? 'Checking...' : 'Check Updates'),
+        ),
+      ),
+    );
+  }
+}
+```
+
+---
+
+## Format Release Notes yang Disarankan
+
+Untuk hasil maksimal, gunakan format markdown ini di GitHub Release:
+
+```markdown
+## ✨ Fitur Baru
+- Login dengan Face ID
+- Dark mode support
+- New dashboard UI
+
+## 🚀 Perbaikan
+- Performa aplikasi meningkat 30%
+- Optimisasi memory usage
+- Faster app startup
+
+## 🐛 Bug Fixes
+- Fix crash pada Android 10
+- Fix duplicate notification issue
+- Fix upload file problem
+
+## ⚠️ Breaking Changes
+- Android minimum API 21 → 24
+- Migration database required
+
+## 📝 Lainnya
+- Update dependencies
+- Code cleanup
+```
+
+---
 
 # 📖 API Reference
 ## ApkUpdater
