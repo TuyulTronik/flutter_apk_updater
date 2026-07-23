@@ -1,22 +1,23 @@
 package com.example.flutter_apk_updater
 
-import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.net.Uri
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
+import android.app.Activity
+import android.os.Environment
+import android.os.StatFs
+import android.provider.Settings
 import io.flutter.embedding.engine.plugins.FlutterPlugin
-import io.flutter.embedding.engine.plugins.activity.ActivityAware
-import io.flutter.embedding.engine.plugins.activity.ActivityPluginBinding
 import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 
-class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, ActivityAware {
+class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler {
 
     private lateinit var channel: MethodChannel
     private lateinit var context: Context
-    private var activity: Activity? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
         context = binding.applicationContext
@@ -47,6 +48,7 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                     return
                 }
 
+                // Cek permission untuk Android 8+ (API 26+)
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     if (!context.packageManager.canRequestPackageInstalls()) {
                         result.error(
@@ -72,6 +74,7 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
                 val canRequest = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     context.packageManager.canRequestPackageInstalls()
                 } else {
+                    // Untuk Android 7- (API < 26), permission tidak diperlukan
                     true
                 }
                 result.success(canRequest)
@@ -80,8 +83,8 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
             "openInstallSettings" -> {
                 try {
                     val intent = Intent(
-                        android.provider.Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                        android.net.Uri.parse("package:${context.packageName}")
+                        Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                        Uri.parse("package:${context.packageName}")
                     )
                     intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
                     context.startActivity(intent)
@@ -97,106 +100,52 @@ class FlutterApkUpdaterPlugin : FlutterPlugin, MethodChannel.MethodCallHandler, 
 
             "getFreeSpace" -> {
                 try {
+                    // Gunakan context.filesDir untuk Android 10+
                     val path = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-                        context.filesDir.path
+                        context.filesDir.path // Lebih aman untuk Android 10+
                     } else {
-                        android.os.Environment.getDataDirectory().path
+                        Environment.getDataDirectory().path
                     }
 
-                    val stat = android.os.StatFs(path)
+                    val stat = StatFs(path)
                     val freeBytes = stat.availableBlocksLong * stat.blockSizeLong
                     result.success(freeBytes)
                 } catch (e: Exception) {
                     result.error("storage_error", e.message, null)
                 }
             }
-
-            "closeApp" -> {
-                _closeAppWithDelay()
-                result.success(null)
-            }
-
+             "closeApp" -> {
+                    _closeApp()
+                    result.success(null)
+             }
             else -> {
                 result.notImplemented()
             }
         }
     }
-
-    /**
-     * Menutup aplikasi dengan delay agar installer terbuka terlebih dahulu.
-     * 
-     * Flow:
-     * 1. Delay 1200ms (tunggu installer terbuka)
-     * 2. Hapus app dari recent apps (finishAndRemoveTask)
-     * 3. Delay 300ms (tunggu proses finish selesai)
-     * 4. Hentikan proses app (System.exit / Process.killProcess)
-     * 
-     * Hasil: Recent apps hanya menampilkan 1 entri (app versi baru)
-     */
-    private fun _closeAppWithDelay() {
+    private fun _closeApp() {
         try {
-            val currentActivity = activity
-            if (currentActivity == null) {
-                System.exit(0)
-                return
+            // 1. Selesai semua aktivitas
+            val activity = context as? Activity
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                activity?.finishAndRemoveTask()
+            } else {
+                activity?.finish()
             }
 
-            // Step 1: Tunggu installer terbuka (1200ms)
+            // 2. Force exit (fallback)
             Handler(Looper.getMainLooper()).postDelayed({
-                try {
-                    // Step 2: Hapus dari recent apps
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                        currentActivity.finishAndRemoveTask()
-                    } else {
-                        currentActivity.finish()
-                    }
-
-                    // Step 3: Tunggu proses finish selesai (300ms)
-                    Handler(Looper.getMainLooper()).postDelayed({
-                        try {
-                            // Step 4: Hentikan proses app
-                            System.exit(0)
-                        } catch (e: Exception) {
-                            try {
-                                android.os.Process.killProcess(android.os.Process.myPid())
-                            } catch (_: Exception) {
-                                // Ignore
-                            }
-                        }
-                    }, 300)
-
-                } catch (e: Exception) {
-                    // Fallback: langsung exit
-                    System.exit(0)
-                }
-            }, 1200) // ← Optimal: 1200ms
+                System.exit(0)
+            }, 100)
 
         } catch (e: Exception) {
-            // Ultimate fallback
+            // 3. Ultimate fallback
             System.exit(0)
         }
     }
-
-    // ============================================================
-    // ActivityAware Implementation
-    // ============================================================
-    override fun onAttachedToActivity(binding: ActivityPluginBinding) {
-        activity = binding.activity
-    }
-
-    override fun onDetachedFromActivityForConfigChanges() {
-        activity = null
-    }
-
-    override fun onReattachedToActivityForConfigChanges(binding: ActivityPluginBinding) {
-        activity = binding.activity
-    }
-
-    override fun onDetachedFromActivity() {
-        activity = null
-    }
-
-    override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
+    override fun onDetachedFromEngine(
+        binding: FlutterPlugin.FlutterPluginBinding
+    ) {
         channel.setMethodCallHandler(null)
     }
 }
