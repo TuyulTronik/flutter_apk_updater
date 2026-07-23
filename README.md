@@ -991,6 +991,19 @@ class UpdateInfo {
   final GitHubAsset asset;         // Asset APK yang dipilih
 }
 ```
+### GitHubRelease
+Data release dari GitHub yang berisi changelog.
+```dart
+class GitHubRelease {
+  final String version;            // Tag version (contoh: 'v1.0.0')
+  final String releaseNotes;       // Changelog/Release notes
+  final DateTime publishedAt;      // Tanggal publish
+  final List<GitHubAsset> assets;  // Daftar asset
+  
+  // Method untuk mencari asset checksum
+  GitHubAsset? findChecksumAsset(String apkName);
+}
+```
 ### DownloadInfo
 ```dart
 class DownloadInfo {
@@ -1271,6 +1284,15 @@ Solusi:
 2. Download akan tetap tersimpan di getApplicationSupportDirectory()
 3. Saat mencoba download ulang, seharusnya resume dari session yang tersimpan
 4. Jika tidak resume, hapus session: await DownloadSessionStorage().clear()
+
+## Changelog Tidak Muncul
+Masalah: Release notes kosong atau tidak muncul
+
+Solusi:
+1. Pastikan Anda mengisi release notes/description saat membuat release di GitHub
+2. Format release notes dengan markdown yang jelas
+3. Gunakan section headers (`## Features`, `## Bug Fixes`) agar mudah diparsing
+4. Cek apakah releaseNotes string tidak kosong sebelum menampilkan
 ---
 
 # Checksum Verification
